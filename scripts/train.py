@@ -59,23 +59,23 @@ class config:
     FOLDS = 5
     DEBUG = False
     EVALUATE = True
-    RESUME = True
+    RESUME = False
     RESUME_EPOCH = 39
     # model_path = f'/content/drive/MyDrive/Kaggle/GLR-2021/experiments-{EXPERIMENT}/20210831-200946/'
     model_path = f'../input/glr-eff-v2-m-arcface-retraining-at-640/'
     
     ### Dataset
-    dataset = 'v1'  # one of 'v2', 'v2c', 'comp'
+    dataset = 'v2'  # one of 'v2', 'v2c', 'comp'
     BATCH_SIZE = 32 * strategy.num_replicas_in_sync
-    IMAGE_SIZE = 256
+    IMAGE_SIZE = 384
     
     ### Model
-    model_type = 'effnetv2'  # One of effnetv1, effnetv2
-    EFF_NET = 0
+    model_type = 'effnetv1'  # One of effnetv1, effnetv2
+    EFF_NET = 7
     EFF_NETV2 = 'm-21k-ft1k'
     FREEZE_BATCH_NORM = False
     head = 'arcface' # one of arcface, curricular-face
-    EPOCHS = 3
+    EPOCHS = 30
     LR = 0.001
     message='retraining 640 epoch 2'
     

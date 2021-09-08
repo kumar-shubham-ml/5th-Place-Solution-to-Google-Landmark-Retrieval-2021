@@ -61,7 +61,6 @@ class config:
     EVALUATE = True
     RESUME = False
     RESUME_EPOCH = 39
-    # model_path = f'/content/drive/MyDrive/Kaggle/GLR-2021/experiments-{EXPERIMENT}/20210831-200946/'
     model_path = f'../input/glr-eff-v2-m-arcface-retraining-at-640/'
     
     ### Dataset

@@ -50,7 +50,8 @@ save_dir = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{run_ts}'
 print("Model ID:",run_ts)
 os.makedirs(save_dir,exist_ok=True)
 
-
+resume_ts = '20210907-222712'
+EPOCHS_PER_CYCLE = 3
 class config:
     
     
@@ -59,9 +60,9 @@ class config:
     FOLDS = 5
     DEBUG = False
     EVALUATE = True
-    RESUME = False
-    RESUME_EPOCH = 39
-    model_path = f'../input/glr-eff-v2-m-arcface-retraining-at-640/'
+    RESUME = True
+    RESUME_EPOCH = 9
+    model_path = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{resume_ts}'
     
     ### Dataset
     dataset = 'v2'  # one of 'v2', 'v2c', 'comp'
@@ -74,7 +75,7 @@ class config:
     EFF_NETV2 = 'm-21k-ft1k'
     FREEZE_BATCH_NORM = False
     head = 'arcface' # one of arcface, curricular-face
-    EPOCHS = 30
+    EPOCHS = 10 * EPOCHS_PER_CYCLE
     LR = 0.001
     message='retraining 640 epoch 2'
     

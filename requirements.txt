@@ -1,2 +1,3 @@
 efficientnet
 tensorflow_addons
+kaggle

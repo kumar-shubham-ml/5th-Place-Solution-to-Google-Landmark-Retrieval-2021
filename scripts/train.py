@@ -8,7 +8,7 @@ import tensorflow as tf
 try:
     # TPU detection. No parameters necessary if TPU_NAME environment variable is
     # set: this is always the case on Kaggle.
-    tpu = tf.distribute.cluster_resolver.TPUClusterResolver()
+    tpu = tf.distribute.cluster_resolver.TPUClusterResolver('ks-tpu')
     print('Running on TPU ', tpu.master())
 except ValueError:
     tpu = None
@@ -90,26 +90,8 @@ class config:
     CUTOUT = False
     save_dir = save_dir
 
-    EFFNETV2_ROOT = 'gs://kds-9b67f7a880034be953f1ea1d0ca5dbd5b5fc5c95bc6337d46401f403'
-
-
-# In[ ]:
-
-
-if config.EPOCHS>3:
-    ## Save Last 3 epochs
-    config.SNAPSHOT_THRESHOLD = config.EPOCHS-3
-else:
-    config.SNAPSHOT_THRESHOLD = 0
-
-
-# In[ ]:
-
-
-config.SNAPSHOT_THRESHOLD = 99
-
-
-# In[ ]:
+    EFFNETV2_ROOT = 'gs://ks-utils/efficientnet-v2-tfhub/'
+    SNAPSHOT_THRESOLD = 99
 
 
 if config.dataset=='comp':

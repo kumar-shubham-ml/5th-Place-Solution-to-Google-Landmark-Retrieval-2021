@@ -8,7 +8,7 @@ import tensorflow as tf
 try:
     # TPU detection. No parameters necessary if TPU_NAME environment variable is
     # set: this is always the case on Kaggle.
-    tpu = tf.distribute.cluster_resolver.TPUClusterResolver('ks-tpu')
+    tpu = tf.distribute.cluster_resolver.TPUClusterResolver('ks-tpu-1')
     print('Running on TPU ', tpu.master())
 except ValueError:
     tpu = None
@@ -50,32 +50,33 @@ save_dir = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{run_ts}'
 print("Model ID:",run_ts)
 os.makedirs(save_dir,exist_ok=True)
 
-resume_ts = '20210907-222712'
+resume_ts = '20210908-193007'
 EPOCHS_PER_CYCLE = 3
 class config:
     
     
     SEED = 42
-    FOLD_TO_RUN = 0
+    FOLD_TO_RUN = 1
     FOLDS = 5
     DEBUG = False
     EVALUATE = True
     RESUME = True
-    RESUME_EPOCH = 9
-    model_path = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{resume_ts}'
-    
+    RESUME_EPOCH = 30
+    model_path = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{resume_ts}/'
+    model_path = '/home/kumarshubham/checkpoints/V2-L/'
+
     ### Dataset
     dataset = 'v2'  # one of 'v2', 'v2c', 'comp'
     BATCH_SIZE = 32 * strategy.num_replicas_in_sync
-    IMAGE_SIZE = 384
+    IMAGE_SIZE = 512
     
     ### Model
-    model_type = 'effnetv1'  # One of effnetv1, effnetv2
-    EFF_NET = 7
-    EFF_NETV2 = 'm-21k-ft1k'
+    model_type = 'effnetv2'  # One of effnetv1, effnetv2
+    EFF_NET = 6
+    EFF_NETV2 = 'l-21k-ft1k'
     FREEZE_BATCH_NORM = False
-    head = 'arcface' # one of arcface, curricular-face
-    EPOCHS = 10 * EPOCHS_PER_CYCLE
+    head = 'curricularface' # one of arcface, curricular-face
+    EPOCHS = 6 * EPOCHS_PER_CYCLE
     LR = 0.001
     message='retraining 640 epoch 2'
     
@@ -90,18 +91,14 @@ class config:
     CUTOUT = False
     save_dir = save_dir
 
-    EFFNETV2_ROOT = 'gs://ks-utils/efficientnet-v2-tfhub/'
-    SNAPSHOT_THRESOLD = 99
+    EFFNETV2_ROOT = 'gs://ks-utils/efficientnet-v2-tfhub'
 
+    SNAPSHOT_THRESHOLD = 99
 
 if config.dataset=='comp':
     config.N_CLASSES = 81313
 elif config.dataset=='v2':
     config.N_CLASSES = 203094
-
-
-# In[ ]:
-
 
 with open(config.save_dir+'/config.json', 'w') as fp:
     json.dump({x:dict(config.__dict__)[x] for x in dict(config.__dict__) if not x.startswith('_')}, fp)
@@ -113,7 +110,7 @@ with open(config.save_dir+'/config.json', 'w') as fp:
 
 
 if config.dataset=='v2':
-    TRAINING_FILENAMES = [f'gs://landmark-2021/train/landmark-2021-gld2-{x}.tfrec' for x in range(20) if x!=config.FOLD_TO_RUN]
+    TRAINING_FILENAMES = [f'gs://landmark-2021/train/landmark-2021-gld2-{x}.tfrec' for x in range(20)]
     VALIDATION_FILENAMES = [f'gs://landmark-2021/train/landmark-2021-gld2-{config.FOLD_TO_RUN}.tfrec']
 elif config.dataset=='comp':
     GCS_PATHS = {
@@ -541,11 +538,12 @@ def get_model():
             x = EFNS[config.EFF_NET](weights = 'noisy-student', include_top = False)(inp)
             embed = tf.keras.layers.GlobalAveragePooling2D()(x)
         elif config.model_type == 'effnetv2':
-            FEATURE_VECTOR = f'{EFFNETV2_ROOT}/tfhub_models/efficientnetv2-{config.EFF_NETV2}/feature_vector'
+            FEATURE_VECTOR = f'{config.EFFNETV2_ROOT}/tfhub_models/efficientnetv2-{config.EFF_NETV2}/feature_vector'
             embed = tfhub.KerasLayer(FEATURE_VECTOR, trainable=True)(inp)
             
         embed = tf.keras.layers.Dropout(0.2)(embed)
         embed = tf.keras.layers.Dense(512)(embed)
+        
         x = margin([embed, label])
         
         output = tf.keras.layers.Softmax(dtype='float32')(x)
@@ -556,7 +554,7 @@ def get_model():
         opt = tf.keras.optimizers.Adam(learning_rate = config.LR)
         if config.FREEZE_BATCH_NORM:
             freeze_BN(model)
-
+        #model = embed_model
         model.compile(
             optimizer = opt,
             loss = [tf.keras.losses.SparseCategoricalCrossentropy()],
@@ -635,13 +633,12 @@ K.clear_session()
 model,embed_model = get_model()
 snap = Snapshot(snapshot_min_epoch=config.SNAPSHOT_THRESHOLD,fold=config.FOLD_TO_RUN)
 model.summary()
-
+#model.save_weights('/home/kumarshubham/temp.h5')
 
 # In[ ]:
 
-
 if config.RESUME:   
-  model.load_weights(config.model_path+f"EF{config.EFF_NET}_fold{config.FOLD_TO_RUN}_last.h5")
+    model.load_weights(config.model_path+f"EF{config.EFF_NET}_fold-{config.FOLD_TO_RUN}_last.h5")
 
 
 # In[ ]:

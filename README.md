@@ -1,5 +1,7 @@
 # 5th Place Solution to Google Landmark retrieval 2021 competition (Kaggle)
 
+This repo contains training and inference code for fifth place solution to Google Landmark retrieval 2021 competition hosted on Kaggle. This repo is jointly owned by [tereka](https://github.com/tereka114) and [KS](https://github.com/kumar-shubham-ml)
+
 Brief Summary about competition & proposed solution -> To be added
 
 Competition: https://www.kaggle.com/c/landmark-retrieval-2021/overview

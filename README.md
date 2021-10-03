@@ -1,11 +1,11 @@
 # 5th Place Solution to Google Landmark retrieval 2021 competition (Kaggle)
 
-Many a times we can't match index and test images by direct KNN (for example: indoor/outdoor images). Our solution is based on using train images to find these connections (we call this bridged connections). This postprocessing alone gives boost of 0.085-0.09 on public/private lb.
+Brief Summary about competition & proposed solution -> To be added
 
-## Inference Code
-https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
+Competition: https://www.kaggle.com/c/landmark-retrieval-2021/overview
+Inference Code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
 
-## Brief Summary
+## Train
 
 Backbone + ArcFace, GLDv2 Training(4.1M)
 Post Process(WDA, bridged confidence etc….)
@@ -29,6 +29,8 @@ KNN in GPU is faster than CPU, it's a great performance.
 Also, we use pre-compute embedding, it computes in local and uploads all.(it use post-process)
 
 ## Post-Process
+
+Many a times we can't match index and test images by direct KNN (for example: indoor/outdoor images). Our postprocessing is based on using train images to find these connections (we call this bridged connections). This postprocessing alone gives boost of 0.085-0.09 on public/private lb.
 
 ### PART A - Bridged Distance Computation
 

@@ -4,8 +4,8 @@ This repo contains training and inference code for fifth place solution to Googl
 
 Brief Summary about competition & proposed solution -> To be added
 
-Competition: https://www.kaggle.com/c/landmark-retrieval-2021/overview
-Inference Code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
+#### Competition: https://www.kaggle.com/c/landmark-retrieval-2021/overview
+#### Inference Code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
 
 ## Train
 

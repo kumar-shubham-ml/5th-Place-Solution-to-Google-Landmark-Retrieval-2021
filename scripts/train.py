@@ -4,11 +4,11 @@
 
 import os
 import tensorflow as tf
-
+from tensorflow.keras import mixed_precision
 try:
     # TPU detection. No parameters necessary if TPU_NAME environment variable is
     # set: this is always the case on Kaggle.
-    tpu = tf.distribute.cluster_resolver.TPUClusterResolver('ks-tpu-1')
+    tpu = tf.distribute.cluster_resolver.TPUClusterResolver('ks-tpu')
     print('Running on TPU ', tpu.master())
 except ValueError:
     tpu = None
@@ -17,6 +17,10 @@ if tpu:
     tf.config.experimental_connect_to_cluster(tpu)
     tf.tpu.experimental.initialize_tpu_system(tpu)
     strategy = tf.distribute.TPUStrategy(tpu)
+    ### Mixed Precision Training
+    #policy = mixed_precision.Policy('mixed_bfloat16')
+    #mixed_precision.set_global_policy(policy)
+    #tf.config.optimizer.set_jit(True)
 else:
     # Default distribution strategy in Tensorflow. Works on CPU and single GPU.
     strategy = tf.distribute.get_strategy()
@@ -50,7 +54,7 @@ save_dir = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{run_ts}'
 print("Model ID:",run_ts)
 os.makedirs(save_dir,exist_ok=True)
 
-resume_ts = '20210908-193007'
+resume_ts = '20210919-180750'
 EPOCHS_PER_CYCLE = 3
 class config:
     
@@ -63,23 +67,25 @@ class config:
     RESUME = True
     RESUME_EPOCH = 30
     model_path = f'/home/kumarshubham/runs/experiments-{EXPERIMENT}/{resume_ts}/'
-    model_path = '/home/kumarshubham/checkpoints/V2-L/'
+    #model_path = '/home/kumarshubham/checkpoints/V2-L/'
 
     ### Dataset
     dataset = 'v2'  # one of 'v2', 'v2c', 'comp'
-    BATCH_SIZE = 32 * strategy.num_replicas_in_sync
-    IMAGE_SIZE = 512
+    BATCH_SIZE = 12 * strategy.num_replicas_in_sync
+    IMAGE_SIZE = 720
     
     ### Model
     model_type = 'effnetv2'  # One of effnetv1, effnetv2
     EFF_NET = 6
     EFF_NETV2 = 'l-21k-ft1k'
     FREEZE_BATCH_NORM = False
-    head = 'curricularface' # one of arcface, curricular-face
-    EPOCHS = 6 * EPOCHS_PER_CYCLE
+    head = 'arcface' # one of arcface, curricular-face
+    EPOCHS = 15 * EPOCHS_PER_CYCLE
     LR = 0.001
     message='retraining 640 epoch 2'
-    
+    accumulate_gradient = True
+    gradient_steps = 3
+
     ### Augmentations
     PRECROP_IMAGE_SIZE = 512
     ROT_ = 10.0
@@ -91,7 +97,7 @@ class config:
     CUTOUT = False
     save_dir = save_dir
 
-    EFFNETV2_ROOT = 'gs://ks-utils/efficientnet-v2-tfhub'
+    EFFNETV2_ROOT = XXXXX ## Add GCS Path here
 
     SNAPSHOT_THRESHOLD = 99
 
@@ -110,8 +116,8 @@ with open(config.save_dir+'/config.json', 'w') as fp:
 
 
 if config.dataset=='v2':
-    TRAINING_FILENAMES = [f'gs://landmark-2021/train/landmark-2021-gld2-{x}.tfrec' for x in range(20)]
-    VALIDATION_FILENAMES = [f'gs://landmark-2021/train/landmark-2021-gld2-{config.FOLD_TO_RUN}.tfrec']
+    TRAINING_FILENAMES = [f'{GCS_PATH}-{x}.tfrec' for x in range(20) if x!=config.FOLD_TO_RUN]
+    VALIDATION_FILENAMES = [f'{GCS_PATH}-{config.FOLD_TO_RUN}.tfrec']
 elif config.dataset=='comp':
     GCS_PATHS = {
         0: 'gs://kds-665f16a629f52bf486a51f98309aae3de7a9faee4de89b8e97f4ae18',
@@ -323,6 +329,46 @@ def count_data_items(filenames):
 NUM_TRAINING_IMAGES = count_data_items(TRAINING_FILENAMES)
 print(f'Dataset: {NUM_TRAINING_IMAGES} training images')
 
+with strategy.scope():
+    
+    # credict: https://stackoverflow.com/a/66524901/9215780
+    class Model_with_Accumulated_Gradients(tf.keras.Model):
+        def __init__(self, n_gradients, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            self.n_gradients = tf.constant(n_gradients, dtype=tf.int32)
+            self.n_acum_step = tf.Variable(0, dtype=tf.int32, trainable=False)
+            self.gradient_accumulation = [tf.Variable(tf.zeros_like(v, dtype=tf.float32), 
+                                                      trainable=False) for v in self.trainable_variables]
+
+        def train_step(self, data):
+            self.n_acum_step.assign_add(1)
+
+            x, y = data
+            # Gradient Tape
+            with tf.GradientTape() as tape:
+                y_pred = self(x, training=True)
+                loss = self.compiled_loss(y, y_pred, regularization_losses=self.losses)
+            # Calculate batch gradients
+            gradients = tape.gradient(loss, self.trainable_variables)
+            # Accumulate batch gradients
+            for i in range(len(self.gradient_accumulation)):
+                self.gradient_accumulation[i].assign_add(gradients[i])
+
+            # If n_acum_step reach the n_gradients then we apply accumulated gradients to update the variables otherwise do nothing
+            tf.cond(tf.equal(self.n_acum_step, self.n_gradients), self.apply_accu_gradients, lambda: None)
+
+            # update metrics
+            self.compiled_metrics.update_state(y, y_pred)
+            return {m.name: m.result() for m in self.metrics}
+
+        def apply_accu_gradients(self):
+            # apply accumulated gradients
+            self.optimizer.apply_gradients(zip(self.gradient_accumulation, self.trainable_variables))
+
+            # reset
+            self.n_acum_step.assign(0)
+            for i in range(len(self.gradient_accumulation)):
+                self.gradient_accumulation[i].assign(tf.zeros_like(self.trainable_variables[i], dtype=tf.float32))
 
 # Arcmarginproduct class keras layer
 class ArcMarginProduct(tf.keras.layers.Layer):
@@ -547,8 +593,8 @@ def get_model():
         x = margin([embed, label])
         
         output = tf.keras.layers.Softmax(dtype='float32')(x)
-
-        model = tf.keras.models.Model(inputs = [inp, label], outputs = [output])
+        if config.accumulate_gradient: model = Model_with_Accumulated_Gradients(inputs = [inp, label], outputs = [output],n_gradients=config.gradient_steps)
+        else: model = tf.keras.models.Model(inputs = [inp, label], outputs = [output])
         embed_model = tf.keras.models.Model(inputs = inp, outputs = embed)  
         
         opt = tf.keras.optimizers.Adam(learning_rate = config.LR)
@@ -638,7 +684,7 @@ model.summary()
 # In[ ]:
 
 if config.RESUME:   
-    model.load_weights(config.model_path+f"EF{config.EFF_NET}_fold-{config.FOLD_TO_RUN}_last.h5")
+    model.load_weights(config.model_path+f"EF{config.EFF_NET}_fold{config.FOLD_TO_RUN}_last.h5")
 
 
 # In[ ]:

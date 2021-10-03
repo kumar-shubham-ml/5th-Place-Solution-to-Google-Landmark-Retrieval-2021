@@ -28,7 +28,7 @@ KNN in GPU is faster than CPU, it's a great performance.
 
 Also, we use pre-compute embedding, it computes in local and uploads all.(it use post-process)
 
-# #Post-Process
+## Post-Process
 
 ### PART A - Bridged Distance Computation
 

@@ -6,6 +6,7 @@ Brief Summary about competition & proposed solution -> To be added
 
 #### Competition: https://www.kaggle.com/c/landmark-retrieval-2021/overview
 #### Inference Code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
+#### ICCV Presentation: https://github.com/kumar-shubham-ml/5th-Place-Solution-to-Google-Landmark-Retrieval-2021/blob/main/ICCV_Presentation.pdf
 
 ## Train
 

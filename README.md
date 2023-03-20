@@ -1,71 +1,21 @@
-# 5th Place Solution to Google Landmark retrieval 2021 competition (Kaggle)
+This repository contains the training and inference code for the fifth place solution in the Google Landmark Retrieval 2021 competition hosted on Kaggle. The solution was jointly created by the repository's owners, tereka and KS.
 
-This repo contains training and inference code for fifth place solution to Google Landmark retrieval 2021 competition hosted on Kaggle. This repo is jointly owned by [tereka](https://github.com/tereka114) and [KS](https://github.com/kumar-shubham-ml).
+The competition involved the retrieval of landmarks from a dataset of over four million images. The proposed solution involves using a backbone + ArcFace module + Average Pooling architecture with efficientNet v2s 800, v2m 732, v2m 640, v2l 720, and v2xl 640 as the backbone models. Gradient accumulation and mixed-precision training were employed to enable training with high batch sizes and large image sizes.
 
-Brief Summary about competition & proposed solution -> To be added
+The training data was GLDv2 (4.1M), and 512 embedding vectors were extracted from each model. These vectors were concatenated into vectors of size 2560. Pre-computed embedding was used, which computed embeddings locally and then uploaded them.
+
+Post-processing involved using train images to find bridged connections since direct KNN matches between index and test images were not always possible, such as for indoor/outdoor images. The post-processing involved three parts: bridged distance computation, direct distance computation, and re-ranking.
+
+In the first part, distances between test and landmark, and index and landmark were computed using a penalization technique. In the second part, the top five nearest landmarks were selected for each test and index image, and a bonus confidence of 0.5 was added to the nearest landmark. In the third part, bridged distance between test and index images was calculated using a power average approach. Direct distance computation involved applying Database Augmentation (DBA) on index and test embeddings and then applying KNN. The final confidence was calculated by aggregating the direct and bridged confidence scores.
+
+Bridged Distance between test and index images is calculated as: 
+
+         Min( Max((test,landmark_id),(index,landmark_id)) for all landmark_id )
+
+All the post-processing hyperparameters were optimized on the 2019 index/test dataset. The solution was trained using Adam 15ep training with Cosine Annealing. The training was carried out using Google TPU Research Program's V3 TPUs on GCP in the last few days of the competition.
+
+The repository also contains a presentation on the solution, an inference code, and the backbone models used.
 
 #### Competition: https://www.kaggle.com/c/landmark-retrieval-2021/overview
 #### Inference Code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
 #### ICCV Presentation: https://github.com/kumar-shubham-ml/5th-Place-Solution-to-Google-Landmark-Retrieval-2021/blob/main/ICCV_Presentation.pdf
-
-## Train
-
-Backbone + ArcFace, GLDv2 Training(4.1M)
-
-Model architecture is backbone+ArcFace module+Average Pooling.
-The backbone list is here.
-
-1. EfficientNet v2s 800
-2. EfficientNet v2m 732
-3. EfficientNet v2m 640
-4. EfficientNet v2l 720
-5. EfficientNet v2xl 640(training 512)
-
-Training data is gldv2(4.1M). in order to train large image size with high batch size, we used gradient accumulation and mixed-precision training,(above v2s)
-
-We use Adam 15ep training with Cosine Annealing and extract 512 embedding vectors from each model. After we create concatenation vectors(2560).
-
-Also, we use pre-compute embedding, it computes in local and uploads all.(it use post-process)
-
-## Post-Process
-
-Many a times we can't match index and test images by direct KNN (for example: indoor/outdoor images). Our postprocessing is based on using train images to find these connections (we call this bridged connections). This postprocessing alone gives boost of 0.085-0.09 on public/private lb.
-
-### PART A - Bridged Distance Computation
-
-#### Step 1: Computing Distance between (test and landmark) and (index and landmark)
-
-1. So, for each test and index image, we pick top 300 neighbours from train images using KNN (RAPIDS)
-2. We penalise each train image by non landmark distances. Non landmark scores for each train image is computed using non landmark images from 2019 test set. We take top 10 neighbours for each train image and get the average of their distances. (2020 Recognition 1st place solution)
-3. We compute distance between each test image and landmark id -> Pick top k (k=2) nearest train images belonging to landmark from test and average them
-4. Similarly, we compute distance between each index image and landmark id 
-
-#### Step 2: Finding Top 5 Landmarks for each test and index images
-5. We pick top 5 nearest landmarks for each test and index images with the help of distance calculated above
-6. We add bonus confidence (0.5) to the nearest landmark for each test and index image (distance = distance - 0.5)
-
-#### Step 3: Calculating Bridged Distance
-7. Bridged Distance between test and index images is calculated as: 
-
-         Min( Max((test,landmark_id),(index,landmark_id)) for all landmark_id )
-
-### PART B - Direct Distance Computation
-
-1. We apply DBA (Database Augmentation) on index and test embeddings and then apply KNN.  We found that the direct connections have very high precision at high confidences but bridged connections bring more neighbours.
-
-### PART C - Reranking
-
-1. We converted all distances into confidence -> Confidence = 1-distance
-2. We aggregated direct and bridged confidence using power average approach (3rd place solution for recognition 2020)
-
-        Final Confidence = Direct Confidence**3 + Bridged Confidence**3
-        
-3. We pick top 100 index images for each test image using the confidence score calculated above. 
-
-### Postprocessing Optimisation:
-
-All the post-processing hyperparmeters were optimised on 2019 index/test dataset.
-
-
-# Hardware
-Special mention to Google TPU Research Program  (https://sites.research.google/trc/) which helped us in training bigger models in the last few days of the competition by supporting us with V3 TPUs on GCP. 

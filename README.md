@@ -33,7 +33,7 @@ The post-processing step consists of three parts: Bridged Distance Computation, 
 
 ### Part A - Bridged Distance Computation
 
-#### Step 1: KNN with top 300 neighbours with cosine distance
+#### Step 1: KNN with cosine distance to get top 300 neighbours 
 Compute the distance between each test and index image and landmark id by picking the top 300 neighbors from the train images using KNN (RAPIDS).
 Penalize each train image by non-landmark distances, computed using non-landmark images from the 2019 test set. Take the top 10 neighbors for each train image and get the average of their distances.
 Compute the distance between each test image and landmark id by picking the top k (k=2) nearest train images belonging to the landmark from the test and averaging them.

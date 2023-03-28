@@ -13,12 +13,12 @@ ICCV Presentation: https://github.com/kumar-shubham-ml/5th-Place-Solution-to-Goo
 
 The proposed solution involves the following steps:
 
-Train a model using a backbone and ArcFace module for GLDv2 dataset (4.1M).
-Use gradient accumulation and mixed-precision training to train large image size with high batch size.
-Use Adam 15ep training with cosine annealing and extract 512 embedding vectors from each model.
-Create concatenation vectors (2560).
-Use pre-compute embedding, which computes in local and uploads all (it uses post-process).
-Use post-processing to improve the retrieval performance.
+1. Train a model using a backbone and ArcFace module for GLDv2 dataset (4.1M).
+2. Use gradient accumulation and mixed-precision training to train large image size with high batch size.
+3. Use Adam 15ep training with cosine annealing and extract 512 embedding vectors from each model.
+4. Create concatenation vectors (2560).
+5. Use pre-compute embedding, which computes in local and uploads all (it uses post-process).
+6. Use post-processing to improve the retrieval performance.
 ## Training
 The model architecture is backbone+ArcFace module+Average Pooling, and the backbone list is as follows:
 

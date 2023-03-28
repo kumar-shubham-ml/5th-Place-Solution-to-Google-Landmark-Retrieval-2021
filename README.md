@@ -31,26 +31,27 @@ EfficientNet v2xl 640 (training 512)
 ## Post-Processing
 The post-processing step consists of three parts: Bridged Distance Computation, Direct Distance Computation, and Reranking.
 
-Part A - Bridged Distance Computation
+### Part A - Bridged Distance Computation
 
-Step 1: Compute the distance between each test and index image and landmark id by picking the top 300 neighbors from the train images using KNN (RAPIDS).
+#### Step 1: KNN with top 300 neighbours with cosine distance
+Compute the distance between each test and index image and landmark id by picking the top 300 neighbors from the train images using KNN (RAPIDS).
 Penalize each train image by non-landmark distances, computed using non-landmark images from the 2019 test set. Take the top 10 neighbors for each train image and get the average of their distances.
 Compute the distance between each test image and landmark id by picking the top k (k=2) nearest train images belonging to the landmark from the test and averaging them.
 Similarly, compute the distance between each index image and landmark id.
-Step 2: Finding Top 5 Landmarks for each test and index images
+#### Step 2: Finding Top 5 Landmarks for each test and index images
 Pick the top 5 nearest landmarks for each test and index image with the help of the distance calculated above.
 Add a bonus confidence (0.5) to the nearest landmark for each test and index image (distance = distance - 0.5).
-Step 3: Calculating Bridged Distance
+#### Step 3: Calculating Bridged Distance
 
 Calculate the bridged distance between test and index images as the minimum of the maximum distance between (test, landmark_id) and (index, landmark_id) for all landmark_ids.
 
 Bridged Distance between test and index images is calculated as: 
          Min( Max((test,landmark_id),(index,landmark_id)) for all landmark_id )
          
-Part B - Direct Distance Computation
+### Part B - DBA + Direct Distance Computation
 Apply DBA (Database Augmentation) on index and test embeddings and then apply KNN to retrieve top k neighbours
 
-PART C - Reranking
+### PART C - Reranking
 After computing the direct and bridged distances, we use a reranking approach to further improve the results.
 
 First, we convert all distances into confidences by taking their inverse (i.e., confidence = 1/distance). Then, we combine the direct and bridged confidences using a power average approach, where we raise each confidence to the power of 3 and take the average.

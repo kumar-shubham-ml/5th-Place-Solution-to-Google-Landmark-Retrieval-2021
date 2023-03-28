@@ -5,9 +5,9 @@ This repository contains the code for the fifth place solution to the Google Lan
 The competition, hosted on Kaggle, challenged participants to develop models capable of retrieving the landmark images from a vast dataset of 4.1 million Google Landmark images (GLDv2). The primary objective of the competition was to create a retrieval model that can handle large-scale datasets efficiently.
 
 # Links
-Kaggle competition page: https://www.kaggle.com/c/landmark-retrieval-2021/overview
-Inference code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
-ICCV Presentation: https://github.com/kumar-shubham-ml/5th-Place-Solution-to-Google-Landmark-Retrieval-2021/blob/main/ICCV_Presentation.pdf
+### Kaggle competition page: https://www.kaggle.com/c/landmark-retrieval-2021/overview
+### Inference code: https://www.kaggle.com/ks2019/landmark-retrieval-5th-place-inference-notebook
+### ICCV Presentation: https://github.com/kumar-shubham-ml/5th-Place-Solution-to-Google-Landmark-Retrieval-2021/blob/main/ICCV_Presentation.pdf
 
 # Proposed Solution
 
